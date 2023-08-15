@@ -17,7 +17,6 @@ nodeGroups:
   iam:
     attachPolicyARNs:
     - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-    - ${AWS_ASG_POLICY_ARN}
     withAddonPolicies:
       ebs: true
       awsLoadBalancerController: true
@@ -41,10 +40,48 @@ nodeGroups:
     - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
     - arn:aws:iam::aws:policy/AmazonS3FullAccess
     - arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy
-    - ${AWS_MOUNT_EFS_POLICY_ARN}
-    - ${AWS_ASG_POLICY_ARN}
+    - ${AWS_POLICY_ARN}
     withAddonPolicies:
       autoScaler: true
       cloudWatch: true
   tags:
     k8s.io/cluster-autoscaler/node-template/label/nodegroup_type: "job"
+- name: node-${ENVIRONMENT}-job-spot
+  desiredCapacity: 0
+  minSize: 0
+  maxSize: 1
+  instancesDistribution:
+    maxPrice: 0.05
+    instanceTypes: ["t3.xlarge"]
+    onDemandBaseCapacity: 0
+    onDemandPercentageAboveBaseCapacity: 0
+    spotAllocationStrategy: capacity-optimized
+  labels:
+    lifecycle: Ec2Spot
+    aws.amazon.com/spot: "true"
+    cpu-count: "0"
+    nodegroup_type: job_spot
+  availabilityZones: ["${AWS_AVAILABILITY_ZONE}"]
+  taints:
+  - key: spotInstance
+    value: "true"
+    effect: PreferNoSchedule
+  tags:
+    k8s.io/cluster-autoscaler/node-template/label/lifecycle: Ec2Spot
+    k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/spot: "true"
+    k8s.io/cluster-autoscaler/node-template/label/cpu-count: "0"
+    k8s.io/cluster-autoscaler/node-template/taint/spotInstance: "true:PreferNoSchedule"
+    k8s.io/cluster-autoscaler/enabled: "true"
+    k8s.io/cluster-autoscaler/${CLUSTER_NAME}: "owned"
+    k8s.io/cluster-autoscaler/node-template/label/nodegroup_type: "job_spot"
+  iam:
+    attachPolicyARNs:
+    - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+    - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+    - arn:aws:iam::aws:policy/AmazonS3FullAccess
+    - arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy
+    - ${AWS_POLICY_ARN}
+    withAddonPolicies:
+      autoScaler: true
+      cloudWatch: true
+
