@@ -1,0 +1,50 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: ${CLUSTER_NAME}
+  region: ${AWS_REGION}
+nodeGroups:
+- name: node-${ENVIRONMENT}-web
+  instanceType: t3.medium
+  availabilityZones: ["${AWS_AVAILABILITY_ZONE}"]
+  desiredCapacity: 1
+  minSize: 1
+  maxSize: 1
+  volumeSize: 50
+  volumeType: gp2
+  labels:
+    nodegroup_type: web
+  iam:
+    attachPolicyARNs:
+    - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+    - ${AWS_ASG_POLICY_ARN}
+    withAddonPolicies:
+      ebs: true
+      awsLoadBalancerController: true
+      efs: true
+- name: node-${ENVIRONMENT}-job
+  instanceType: t3.large
+  availabilityZones: ["${AWS_AVAILABILITY_ZONE}"]
+  desiredCapacity: 0
+  minSize: 0
+  maxSize: 1
+  volumeSize: 50
+  volumeType: gp2
+  labels:
+    nodegroup_type: job
+  # ssh:
+  #   allow: true
+  #   publicKeyName: ofc-${ENVIRONMENT}
+  iam:
+    attachPolicyARNs:
+    - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+    - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+    - arn:aws:iam::aws:policy/AmazonS3FullAccess
+    - arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy
+    - ${AWS_MOUNT_EFS_POLICY_ARN}
+    - ${AWS_ASG_POLICY_ARN}
+    withAddonPolicies:
+      autoScaler: true
+      cloudWatch: true
+  tags:
+    k8s.io/cluster-autoscaler/node-template/label/nodegroup_type: "job"
