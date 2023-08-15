@@ -51,8 +51,8 @@ nodeGroups:
   minSize: 0
   maxSize: 1
   instancesDistribution:
-    maxPrice: 0.05
-    instanceTypes: ["t3.xlarge"]
+    maxPrice: 0.15
+    instanceTypes: ["m4.2xlarge", "m5.2xlarge", "m5a.2xlarge", "m6a.2xlarge", "m6i.2xlarge", "t2.2xlarge", "t3.2xlarge", "t3a.2xlarge"]
     onDemandBaseCapacity: 0
     onDemandPercentageAboveBaseCapacity: 0
     spotAllocationStrategy: capacity-optimized

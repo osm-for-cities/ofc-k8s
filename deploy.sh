@@ -7,12 +7,8 @@ export AWS_PARTITION="aws"
 export CLUSTER_NAME="ofc-${ENVIRONMENT}"
 export KUBERNETES_VERSION="1.27"
 export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-export AWS_ASG_POLICY_NAME=ofc_asg_${ENVIRONMENT}
-export AWS_ASG_POLICY_ARN=arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${AWS_ASG_POLICY_NAME}
-
-export AWS_MOUNT_EFS_POLICY_NAME=ofc_efs_mount_${ENVIRONMENT}
-export AWS_MOUNT_EFS_POLICY_ARN=arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${AWS_MOUNT_EFS_POLICY_NAME}
-
+export AWS_POLICY_NAME=ofc_policy_${ENVIRONMENT}
+export AWS_POLICY_ARN=arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${AWS_POLICY_NAME}
 
 function createCluster {
     read -p "Are you sure you want to create a cluster ${CLUSTER_NAME} in region ${AWS_REGION}? (y/n): " confirm
@@ -22,7 +18,7 @@ function createCluster {
 
         #### Create required policies
         envsubst <policy.json >tmp.policy.json
-        aws iam create-policy --policy-name ${AWS_ASG_POLICY_NAME} --policy-document file://tmp.policy.json
+        aws iam create-policy --policy-name ${AWS_POLICY_NAME} --policy-document file://tmp.policy.json
 
         #### Create nodeGroups for the cluster
         envsubst <nodeGroups.yaml | eksctl create nodegroup -f -
@@ -30,6 +26,10 @@ function createCluster {
         #### Get cluster credentials
         aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER_NAME}
         kubectl cluster-info
+
+        #### Metrics
+        kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+        kubectl get pods -n kube-system | grep metrics-server
 
         #### Install ebs-csi addons
         kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
@@ -55,8 +55,7 @@ function deleteCluster {
     if [[ $confirm == [Yy] ]]; then
         eksctl delete cluster --region=${AWS_REGION} --name=${CLUSTER_NAME}
         envsubst <nodeGroups.yaml | eksctl delete nodegroup --approve -f -
-        aws iam delete-policy --policy-arn ${AWS_ASG_POLICY_ARN}
-        aws iam delete-policy --policy-arn ${AWS_MOUNT_EFS_POLICY_ARN}
+        aws iam delete-policy --policy-arn ${AWS_POLICY_ARN}
     fi
 }
 

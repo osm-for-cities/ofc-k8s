@@ -1,3 +1,4 @@
 tmp.sg-policy.json
 aws-auth.yaml
 efs.sh
+tmp.policy.json
